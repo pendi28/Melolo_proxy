@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Melolo Stream</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+    <style>
+        body { background: #121212; color: white; font-family: sans-serif; margin: 0; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; }
+        .card { background: #1f1f1f; border-radius: 8px; overflow: hidden; }
+        .card img { width: 100%; height: 200px; object-fit: cover; }
+        .card-body { padding: 10px; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <h2 style="text-align:center; padding: 20px;">MELOLO STREAM</h2>
+    <div id="list" class="grid"></div>
+
+    <script>
+        // Masukkan Config Firebase Web Anda di sini
+        const firebaseConfig = {
+            apiKey: "AIza...",
+            authDomain: "projek-anda.firebaseapp.com",
+            projectId: "projek-anda",
+            storageBucket: "projek-anda.appspot.com",
+            messagingSenderId: "...",
+            appId: "..."
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        db.collection("dramas").orderBy("updatedAt", "desc").get().then((querySnapshot) => {
+            const listDiv = document.getElementById("list");
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                listDiv.innerHTML += `
+                    <div class="card">
+                        <img src="${data.cover}">
+                        <div class="card-body">
+                            <b>${data.title}</b><br>
+                            <small>${data.author}</small>
+                        </div>
+                    </div>`;
+            });
+        });
+    </script>
+</body>
+</html>
