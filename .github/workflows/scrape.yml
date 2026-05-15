@@ -11,18 +11,13 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Check Files (Debug)
-        run: |
-          echo "--- DAFTAR FILE ANDA ---"
-          ls -R
-          echo "------------------------"
-
-      - uses: actions/setup-node@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
           node-version: '18'
 
-      - name: Install Dependencies
-        run: npm install
+      - name: Force Install Dependencies
+        run: npm install axios firebase-admin
 
       - name: Run Scraper
         env:
