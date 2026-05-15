@@ -6,43 +6,56 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
     <style>
-        body { background: #121212; color: white; font-family: sans-serif; margin: 0; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; }
-        .card { background: #1f1f1f; border-radius: 8px; overflow: hidden; }
-        .card img { width: 100%; height: 200px; object-fit: cover; }
-        .card-body { padding: 10px; font-size: 14px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: #121212; color: white; font-family: sans-serif; }
+        h2 { text-align: center; padding: 20px; font-size: 22px; letter-spacing: 2px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; padding: 12px; }
+        .card { background: #1f1f1f; border-radius: 10px; overflow: hidden; }
+        .card img { width: 100%; height: 220px; object-fit: cover; }
+        .card-body { padding: 8px; }
+        .card-body b { font-size: 13px; display: block; margin-bottom: 4px; }
+        .card-body small { font-size: 11px; color: #aaa; }
+        #loading { text-align: center; padding: 40px; color: #aaa; }
     </style>
 </head>
 <body>
-    <h2 style="text-align:center; padding: 20px;">MELOLO STREAM</h2>
+    <h2>MELOLO STREAM</h2>
+    <div id="loading">Memuat data...</div>
     <div id="list" class="grid"></div>
 
     <script>
-        // Masukkan Config Firebase Web Anda di sini
         const firebaseConfig = {
-            apiKey: "AIza...",
-            authDomain: "projek-anda.firebaseapp.com",
-            projectId: "projek-anda",
-            storageBucket: "projek-anda.appspot.com",
-            messagingSenderId: "...",
-            appId: "..."
+            apiKey: "AIzaSyCJd1LbgnuW5i6TbJlSmXk-2MH9G3Z3Oe8",
+            authDomain: "donghua-7f05f.firebaseapp.com",
+            projectId: "donghua-7f05f",
+            storageBucket: "donghua-7f05f.firebasestorage.app",
+            messagingSenderId: "490312289778",
+            appId: "1:490312289778:web:43860001a1ae11437aef6b"
         };
+
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        db.collection("dramas").orderBy("updatedAt", "desc").get().then((querySnapshot) => {
+        db.collection("dramas").orderBy("updatedAt", "desc").get().then((snap) => {
+            document.getElementById("loading").style.display = "none";
             const listDiv = document.getElementById("list");
-            querySnapshot.forEach((doc) => {
-                const data = doc.data();
+            if (snap.empty) {
+                listDiv.innerHTML = '<p style="text-align:center;color:#aaa;padding:40px">Belum ada data. Jalankan scraper dulu.</p>';
+                return;
+            }
+            snap.forEach((doc) => {
+                const d = doc.data();
                 listDiv.innerHTML += `
                     <div class="card">
-                        <img src="${data.cover}">
+                        <img src="${d.cover || ''}" onerror="this.src='https://via.placeholder.com/160x220?text=No+Image'">
                         <div class="card-body">
-                            <b>${data.title}</b><br>
-                            <small>${data.author}</small>
+                            <b>${d.title}</b>
+                            <small>${d.author || ''}</small>
                         </div>
                     </div>`;
             });
+        }).catch(err => {
+            document.getElementById("loading").textContent = "Gagal memuat: " + err.message;
         });
     </script>
 </body>
