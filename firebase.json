@@ -1,7 +1,0 @@
-{
-  "hosting": {
-    "site": "drama-update",
-    "public": "public",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
-  }
-}
