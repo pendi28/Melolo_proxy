@@ -26,17 +26,18 @@ async function runScraper() {
     let count = 0;
 
     dramas.forEach((drama) => {
-      if (!drama || !drama.title) {
-        console.warn("Melewati item tanpa title:", JSON.stringify(drama));
+      if (!drama || !drama.book_name) {
+        console.warn("Melewati item tanpa book_name:", JSON.stringify(drama));
         return;
       }
 
-      const docId = drama.title.replace(/\s+/g, '-').toLowerCase();
+      const docId = drama.book_id || drama.book_name.replace(/\s+/g, '-').toLowerCase();
       const docRef = db.collection('dramas').doc(docId);
       batch.set(docRef, {
-        title: drama.title,
-        cover: drama.cover || null,
+        title: drama.book_name,
+        cover: drama.thumb_url || null,
         author: drama.author || null,
+        abstract: drama.abstract || null,
         updatedAt: new Date().toISOString()
       }, { merge: true });
 
