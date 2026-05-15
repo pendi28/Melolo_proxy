@@ -16,10 +16,8 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Create package.json and Install
-        run: |
-          npm init -y
-          npm install axios firebase-admin
+      - name: Install dependencies
+        run: npm install
 
       - name: Run Scraper
         env:
