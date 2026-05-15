@@ -2,18 +2,28 @@ name: Scheduled Scraper
 
 on:
   schedule:
-    - cron: '0 */6 * * *' # Jalan setiap 6 jam
-  workflow_dispatch: # Bisa dijalankan manual klik tombol
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
+      - name: Check Files (Debug)
+        run: |
+          echo "--- DAFTAR FILE ANDA ---"
+          ls -R
+          echo "------------------------"
+
       - uses: actions/setup-node@v3
         with:
-          node-node-version: '18'
-      - run: npm install
+          node-version: '18'
+
+      - name: Install Dependencies
+        run: npm install
+
       - name: Run Scraper
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
