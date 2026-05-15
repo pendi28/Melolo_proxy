@@ -1,176 +1,216 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
     <title>Melolo Stream</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #121212; color: white; font-family: sans-serif; min-height: 100vh; }
-
-        header { text-align: center; padding: 20px; font-size: 22px; font-weight: bold; letter-spacing: 2px; border-bottom: 1px solid #222; }
-
-        .search-wrapper { padding: 14px 12px; display: flex; justify-content: center; }
-        #searchInput {
-            width: 100%; max-width: 500px; padding: 10px 16px;
-            border-radius: 20px; border: 1px solid #444;
-            background: #1f1f1f; color: white; font-size: 14px; outline: none;
-        }
+        body { background: #0f0f0f; color: white; font-family: sans-serif; }
+        header { display: flex; align-items: center; justify-content: center; padding: 16px; border-bottom: 1px solid #222; font-size: 20px; font-weight: bold; letter-spacing: 3px; background: #0f0f0f; position: sticky; top: 0; z-index: 10; }
+        .search-wrap { padding: 12px; }
+        #searchInput { width: 100%; padding: 10px 16px; border-radius: 20px; border: 1px solid #333; background: #1a1a1a; color: white; font-size: 14px; outline: none; }
         #searchInput:focus { border-color: #e50914; }
-
-        #count { text-align: center; color: #888; font-size: 13px; margin-bottom: 10px; }
-
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; padding: 0 12px 20px; }
-        .card { background: #1f1f1f; border-radius: 10px; overflow: hidden; cursor: pointer; transition: transform 0.2s; }
-        .card:hover { transform: scale(1.03); }
-        .card img { width: 100%; height: 220px; object-fit: cover; }
+        #count { text-align: center; color: #666; font-size: 12px; margin-bottom: 8px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; padding: 0 10px 80px; }
+        .card { background: #1a1a1a; border-radius: 10px; overflow: hidden; cursor: pointer; transition: transform 0.15s; }
+        .card:active { transform: scale(0.97); }
+        .card img { width: 100%; height: 210px; object-fit: cover; background: #222; }
         .card-body { padding: 8px; }
-        .card-body b { font-size: 13px; display: block; margin-bottom: 4px; }
-        .card-body small { font-size: 11px; color: #aaa; }
-        .badge { font-size: 10px; background: #e50914; padding: 2px 6px; border-radius: 4px; margin-top: 4px; display: inline-block; }
+        .card-body b { font-size: 12px; display: block; margin-bottom: 3px; line-height: 1.3; }
+        .card-body small { font-size: 10px; color: #888; }
+        .badge { font-size: 9px; background: #e50914; padding: 2px 5px; border-radius: 3px; margin-top: 4px; display: inline-block; }
+        .badge.ns { background: #1565c0; }
+        #loading { text-align: center; padding: 60px; color: #666; }
 
-        /* Modal */
-        #modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100; overflow-y: auto; padding: 20px; }
-        #modal-content { background: #1a1a1a; border-radius: 12px; max-width: 600px; margin: 0 auto; overflow: hidden; }
-        #modal-header { display: flex; gap: 12px; padding: 16px; }
-        #modal-header img { width: 100px; height: 140px; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
-        #modal-info { flex: 1; }
-        #modal-info h3 { font-size: 16px; margin-bottom: 6px; }
-        #modal-info p { font-size: 12px; color: #aaa; line-height: 1.5; }
-        #modal-info .author { color: #e50914; font-size: 12px; margin-bottom: 6px; }
-        #close-btn { position: absolute; top: 28px; right: 28px; background: none; border: none; color: white; font-size: 24px; cursor: pointer; z-index: 101; }
-
-        #episodes-title { padding: 10px 16px; font-size: 14px; font-weight: bold; border-top: 1px solid #333; }
-        #episodes-list { padding: 8px 16px 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
-        .ep-card { background: #2a2a2a; border-radius: 8px; overflow: hidden; cursor: pointer; }
-        .ep-card img { width: 100%; height: 80px; object-fit: cover; }
-        .ep-card-body { padding: 6px; font-size: 11px; color: #ccc; }
-        .ep-card .ep-num { font-weight: bold; color: white; }
-
-        #loading { text-align: center; padding: 60px; color: #aaa; }
-        #ep-loading { text-align: center; padding: 20px; color: #aaa; }
+        #modal { display: none; position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,0.95); overflow-y: auto; }
+        #modal-inner { background: #181818; max-width: 520px; margin: 0 auto; min-height: 100vh; }
+        #player-wrap { display: none; width: 100%; background: black; aspect-ratio: 9/16; }
+        #player-wrap iframe { width: 100%; height: 100%; border: none; }
+        .modal-info { display: flex; gap: 12px; padding: 14px; }
+        .modal-info img { width: 90px; height: 125px; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
+        .modal-text h3 { font-size: 15px; margin-bottom: 4px; }
+        .modal-text .auth { color: #e50914; font-size: 11px; margin-bottom: 6px; }
+        .modal-text p { font-size: 11px; color: #aaa; line-height: 1.5; }
+        .modal-text .st { font-size: 10px; background: #333; display: inline-block; padding: 2px 6px; border-radius: 4px; margin-top: 6px; }
+        #close-btn { position: fixed; top: 12px; right: 12px; z-index: 60; background: rgba(0,0,0,0.8); border: none; color: white; width: 36px; height: 36px; border-radius: 50%; font-size: 18px; cursor: pointer; }
+        .eps-header { padding: 10px 14px; font-size: 13px; font-weight: bold; border-top: 1px solid #2a2a2a; color: #ccc; }
+        #ep-loading { text-align: center; padding: 20px; color: #666; font-size: 13px; }
+        .eps-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; padding: 0 10px 20px; }
+        .ep-card { background: #222; border-radius: 8px; overflow: hidden; cursor: pointer; }
+        .ep-card.active { outline: 2px solid #e50914; }
+        .ep-card img { width: 100%; height: 75px; object-fit: cover; background: #333; }
+        .ep-info { padding: 6px; }
+        .ep-num { font-size: 11px; font-weight: bold; }
+        .ep-dur { font-size: 10px; color: #888; margin-top: 2px; }
     </style>
 </head>
 <body>
-    <header>MELOLO STREAM</header>
 
-    <div class="search-wrapper">
-        <input type="text" id="searchInput" placeholder="Cari judul drama..." oninput="filterDramas()">
-    </div>
+<header>🎬 MELOLO STREAM</header>
 
-    <div id="count"></div>
-    <div id="loading">Memuat drama...</div>
-    <div id="list" class="grid"></div>
+<div class="search-wrap">
+    <input type="text" id="searchInput" placeholder="Cari judul drama..." oninput="filterDramas()">
+</div>
+<div id="count"></div>
+<div id="loading">Memuat drama...</div>
+<div id="list" class="grid"></div>
 
-    <!-- Modal Detail -->
-    <div id="modal">
-        <button id="close-btn" onclick="closeModal()">✕</button>
-        <div id="modal-content">
-            <div id="modal-header">
-                <img id="m-cover" src="">
-                <div id="modal-info">
-                    <h3 id="m-title"></h3>
-                    <div id="m-author" class="author"></div>
-                    <p id="m-abstract"></p>
-                    <div id="m-status" class="badge"></div>
-                </div>
-            </div>
-            <div id="episodes-title">Daftar Episode</div>
-            <div id="ep-loading" style="display:none">Memuat episode...</div>
-            <div id="episodes-list"></div>
+<div id="modal">
+    <button id="close-btn" onclick="closeModal()">✕</button>
+    <div id="modal-inner">
+        <div id="player-wrap">
+            <iframe id="player-frame" allowfullscreen allow="autoplay"></iframe>
         </div>
+        <div class="modal-info">
+            <img id="m-cover" src="">
+            <div class="modal-text">
+                <h3 id="m-title"></h3>
+                <div id="m-author" class="auth"></div>
+                <p id="m-abstract"></p>
+                <div id="m-status" class="st"></div>
+            </div>
+        </div>
+        <div class="eps-header">Daftar Episode</div>
+        <div id="ep-loading" style="display:none">Memuat episode...</div>
+        <div id="episodes-list" class="eps-grid"></div>
     </div>
+</div>
 
-    <script>
-        const API = "https://dracinzek.vercel.app/api/melolo";
-        let allDramas = [];
+<script>
+const API = "https://dracinzek.vercel.app/api";
+let allDramas = [];
+let currentBookId = null;
 
-        async function loadDramas() {
-            try {
-                const res = await fetch(`${API}/trending`);
-                const dramas = await res.json();
-                allDramas = dramas;
-                document.getElementById("loading").style.display = "none";
-                renderDramas(allDramas);
-            } catch(e) {
-                document.getElementById("loading").textContent = "Gagal memuat data: " + e.message;
-            }
-        }
+async function loadDramas() {
+    try {
+        const [meloloRes, netshortRes] = await Promise.all([
+            fetch(`${API}/melolo/trending`),
+            fetch(`${API}/netshort/trending`)
+        ]);
+        const melolo = await meloloRes.json();
+        const netshort = await netshortRes.json();
 
-        function renderDramas(list) {
-            const countEl = document.getElementById("count");
-            const listDiv = document.getElementById("list");
-            if (!list.length) {
-                listDiv.innerHTML = '';
-                countEl.textContent = "Tidak ada drama ditemukan.";
-                return;
-            }
-            countEl.textContent = `${list.length} drama`;
-            listDiv.innerHTML = list.map(d => `
-                <div class="card" onclick="openDrama('${d.book_id}', this)">
-                    <img src="${d.thumb_url || ''}" onerror="this.src='https://via.placeholder.com/160x220?text=No+Image'" loading="lazy">
-                    <div class="card-body">
-                        <b>${d.book_name}</b>
-                        <small>${d.author || ''}</small>
-                        <div class="badge">${d.show_creation_status || ''} · ${d.serial_count || '?'} eps</div>
-                    </div>
-                </div>
-            `).join("");
-        }
+        const meloloMapped = Array.isArray(melolo) ? melolo.map(d => ({
+            book_id: d.book_id,
+            title: d.book_name,
+            cover: d.thumb_url,
+            author: d.author,
+            abstract: d.abstract,
+            status: d.show_creation_status,
+            episodes: d.serial_count,
+            source: 'melolo'
+        })) : [];
 
-        function filterDramas() {
-            const kw = document.getElementById("searchInput").value.toLowerCase();
-            renderDramas(kw ? allDramas.filter(d => d.book_name?.toLowerCase().includes(kw)) : allDramas);
-        }
+        const netshortMapped = Array.isArray(netshort) ? netshort.map(d => ({
+            book_id: d.bookId || d.id,
+            title: d.bookName || d.title,
+            cover: d.cover,
+            author: d.tags?.join(', ') || '',
+            abstract: '',
+            status: '',
+            episodes: '',
+            source: 'netshort'
+        })) : [];
 
-        async function openDrama(book_id, cardEl) {
-            const d = allDramas.find(x => x.book_id === book_id);
-            if (!d) return;
+        allDramas = [...meloloMapped, ...netshortMapped];
+        document.getElementById("loading").style.display = "none";
+        renderDramas(allDramas);
+    } catch(e) {
+        document.getElementById("loading").textContent = "Gagal memuat: " + e.message;
+    }
+}
 
-            document.getElementById("m-cover").src = d.thumb_url || '';
-            document.getElementById("m-title").textContent = d.book_name;
-            document.getElementById("m-author").textContent = "✍ " + (d.author || '-');
-            document.getElementById("m-abstract").textContent = d.abstract || '';
-            document.getElementById("m-status").textContent = `${d.show_creation_status} · ${d.serial_count} Episode`;
-            document.getElementById("episodes-list").innerHTML = '';
-            document.getElementById("ep-loading").style.display = "block";
-            document.getElementById("modal").style.display = "block";
-            document.body.style.overflow = "hidden";
+function renderDramas(list) {
+    document.getElementById("count").textContent = `${list.length} drama`;
+    document.getElementById("list").innerHTML = list.map(d => `
+        <div class="card" onclick="openDrama('${d.book_id}','${d.source}')">
+            <img src="${d.cover||''}" onerror="this.src='https://via.placeholder.com/150x210?text=No+Image'" loading="lazy">
+            <div class="card-body">
+                <b>${d.title}</b>
+                <small>${d.author||''}</small>
+                <div class="badge ${d.source==='netshort'?'ns':''}">${d.source==='melolo'?'Melolo':'NetShort'}${d.episodes?' · '+d.episodes+' eps':''}</div>
+            </div>
+        </div>
+    `).join('');
+}
 
-            try {
-                const res = await fetch(`${API}/chapters?book_id=${book_id}`);
-                const eps = await res.json();
-                document.getElementById("ep-loading").style.display = "none";
+function filterDramas() {
+    const kw = document.getElementById("searchInput").value.toLowerCase();
+    renderDramas(kw ? allDramas.filter(d => d.title?.toLowerCase().includes(kw)) : allDramas);
+}
 
-                document.getElementById("episodes-list").innerHTML = eps.map(ep => `
-                    <div class="ep-card" onclick="playEpisode('${ep.vid}', '${ep.series_id}')">
-                        <img src="${ep.cover || ep.episode_cover || ''}" onerror="this.src='https://via.placeholder.com/140x80?text=EP+${ep.vid_index}'" loading="lazy">
-                        <div class="ep-card-body">
-                            <div class="ep-num">Episode ${ep.vid_index}</div>
-                            <div style="margin-top:2px;color:#888;font-size:10px">${Math.floor((ep.duration||0)/60)}m ${(ep.duration||0)%60}s</div>
-                        </div>
-                    </div>
-                `).join("");
-            } catch(e) {
-                document.getElementById("ep-loading").textContent = "Gagal memuat episode.";
-            }
-        }
+async function openDrama(book_id, source) {
+    const d = allDramas.find(x => x.book_id === book_id);
+    if (!d) return;
+    currentBookId = book_id;
 
-        function playEpisode(vid, series_id) {
-            // Open Melolo web player
-            window.open(`https://melolo.tv/series/${series_id}?vid=${vid}`, '_blank');
-        }
+    document.getElementById("m-cover").src = d.cover || '';
+    document.getElementById("m-title").textContent = d.title;
+    document.getElementById("m-author").textContent = d.author ? '✍ ' + d.author : '';
+    document.getElementById("m-abstract").textContent = d.abstract || '';
+    document.getElementById("m-status").textContent = d.status ? `${d.status} · ${d.episodes} Episode` : '';
+    document.getElementById("player-wrap").style.display = "none";
+    document.getElementById("player-frame").src = '';
+    document.getElementById("episodes-list").innerHTML = '';
+    document.getElementById("ep-loading").style.display = "block";
+    document.getElementById("modal").style.display = "block";
+    document.body.style.overflow = "hidden";
 
-        function closeModal() {
-            document.getElementById("modal").style.display = "none";
-            document.body.style.overflow = "";
-        }
+    if (source === 'melolo') {
+        await loadMeloloEpisodes(book_id);
+    } else {
+        document.getElementById("ep-loading").textContent = "Episode tidak tersedia untuk sumber ini.";
+    }
+}
 
-        // Close modal on background click
-        document.getElementById("modal").addEventListener("click", function(e) {
-            if (e.target === this) closeModal();
-        });
+async function loadMeloloEpisodes(book_id) {
+    let allEps = [];
+    let page = 1;
+    while (true) {
+        const res = await fetch(`${API}/melolo/chapters?book_id=${book_id}&page=${page}`);
+        const eps = await res.json();
+        if (!Array.isArray(eps) || eps.length === 0) break;
+        allEps = [...allEps, ...eps];
+        if (eps.length < 40) break;
+        page++;
+    }
 
-        loadDramas();
-    </script>
+    document.getElementById("ep-loading").style.display = "none";
+    document.getElementById("episodes-list").innerHTML = allEps.map(ep => `
+        <div class="ep-card" id="ep-${ep.vid}" onclick="playEpisode('${ep.vid}', '${ep.series_id}', this)">
+            <img src="${ep.cover||ep.episode_cover||''}" onerror="this.src=''" loading="lazy">
+            <div class="ep-info">
+                <div class="ep-num">Episode ${ep.vid_index}</div>
+                <div class="ep-dur">${Math.floor((ep.duration||0)/60)}m ${(ep.duration||0)%60}s</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function playEpisode(vid, series_id, el) {
+    document.querySelectorAll('.ep-card.active').forEach(e => e.classList.remove('active'));
+    el.classList.add('active');
+
+    const playerWrap = document.getElementById("player-wrap");
+    const frame = document.getElementById("player-frame");
+
+    // Try TikTok embed with the vid
+    frame.src = `https://www.tiktok.com/embed/v2/${vid}`;
+    playerWrap.style.display = "block";
+    playerWrap.scrollIntoView({ behavior: 'smooth' });
+}
+
+function closeModal() {
+    document.getElementById("modal").style.display = "none";
+    document.getElementById("player-frame").src = '';
+    document.body.style.overflow = "";
+}
+
+document.getElementById("modal").addEventListener("click", function(e) {
+    if (e.target === this) closeModal();
+});
+
+loadDramas();
+</script>
 </body>
 </html>
