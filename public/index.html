@@ -3,60 +3,174 @@
 <head>
     <title>Melolo Stream</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #121212; color: white; font-family: sans-serif; }
-        h2 { text-align: center; padding: 20px; font-size: 22px; letter-spacing: 2px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; padding: 12px; }
-        .card { background: #1f1f1f; border-radius: 10px; overflow: hidden; }
+        body { background: #121212; color: white; font-family: sans-serif; min-height: 100vh; }
+
+        header { text-align: center; padding: 20px; font-size: 22px; font-weight: bold; letter-spacing: 2px; border-bottom: 1px solid #222; }
+
+        .search-wrapper { padding: 14px 12px; display: flex; justify-content: center; }
+        #searchInput {
+            width: 100%; max-width: 500px; padding: 10px 16px;
+            border-radius: 20px; border: 1px solid #444;
+            background: #1f1f1f; color: white; font-size: 14px; outline: none;
+        }
+        #searchInput:focus { border-color: #e50914; }
+
+        #count { text-align: center; color: #888; font-size: 13px; margin-bottom: 10px; }
+
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; padding: 0 12px 20px; }
+        .card { background: #1f1f1f; border-radius: 10px; overflow: hidden; cursor: pointer; transition: transform 0.2s; }
+        .card:hover { transform: scale(1.03); }
         .card img { width: 100%; height: 220px; object-fit: cover; }
         .card-body { padding: 8px; }
         .card-body b { font-size: 13px; display: block; margin-bottom: 4px; }
         .card-body small { font-size: 11px; color: #aaa; }
-        #loading { text-align: center; padding: 40px; color: #aaa; }
+        .badge { font-size: 10px; background: #e50914; padding: 2px 6px; border-radius: 4px; margin-top: 4px; display: inline-block; }
+
+        /* Modal */
+        #modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100; overflow-y: auto; padding: 20px; }
+        #modal-content { background: #1a1a1a; border-radius: 12px; max-width: 600px; margin: 0 auto; overflow: hidden; }
+        #modal-header { display: flex; gap: 12px; padding: 16px; }
+        #modal-header img { width: 100px; height: 140px; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
+        #modal-info { flex: 1; }
+        #modal-info h3 { font-size: 16px; margin-bottom: 6px; }
+        #modal-info p { font-size: 12px; color: #aaa; line-height: 1.5; }
+        #modal-info .author { color: #e50914; font-size: 12px; margin-bottom: 6px; }
+        #close-btn { position: absolute; top: 28px; right: 28px; background: none; border: none; color: white; font-size: 24px; cursor: pointer; z-index: 101; }
+
+        #episodes-title { padding: 10px 16px; font-size: 14px; font-weight: bold; border-top: 1px solid #333; }
+        #episodes-list { padding: 8px 16px 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+        .ep-card { background: #2a2a2a; border-radius: 8px; overflow: hidden; cursor: pointer; }
+        .ep-card img { width: 100%; height: 80px; object-fit: cover; }
+        .ep-card-body { padding: 6px; font-size: 11px; color: #ccc; }
+        .ep-card .ep-num { font-weight: bold; color: white; }
+
+        #loading { text-align: center; padding: 60px; color: #aaa; }
+        #ep-loading { text-align: center; padding: 20px; color: #aaa; }
     </style>
 </head>
 <body>
-    <h2>MELOLO STREAM</h2>
-    <div id="loading">Memuat data...</div>
+    <header>MELOLO STREAM</header>
+
+    <div class="search-wrapper">
+        <input type="text" id="searchInput" placeholder="Cari judul drama..." oninput="filterDramas()">
+    </div>
+
+    <div id="count"></div>
+    <div id="loading">Memuat drama...</div>
     <div id="list" class="grid"></div>
 
+    <!-- Modal Detail -->
+    <div id="modal">
+        <button id="close-btn" onclick="closeModal()">✕</button>
+        <div id="modal-content">
+            <div id="modal-header">
+                <img id="m-cover" src="">
+                <div id="modal-info">
+                    <h3 id="m-title"></h3>
+                    <div id="m-author" class="author"></div>
+                    <p id="m-abstract"></p>
+                    <div id="m-status" class="badge"></div>
+                </div>
+            </div>
+            <div id="episodes-title">Daftar Episode</div>
+            <div id="ep-loading" style="display:none">Memuat episode...</div>
+            <div id="episodes-list"></div>
+        </div>
+    </div>
+
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyCJd1LbgnuW5i6TbJlSmXk-2MH9G3Z3Oe8",
-            authDomain: "donghua-7f05f.firebaseapp.com",
-            projectId: "donghua-7f05f",
-            storageBucket: "donghua-7f05f.firebasestorage.app",
-            messagingSenderId: "490312289778",
-            appId: "1:490312289778:web:43860001a1ae11437aef6b"
-        };
+        const API = "https://dracinzek.vercel.app/api/melolo";
+        let allDramas = [];
 
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
+        async function loadDramas() {
+            try {
+                const res = await fetch(`${API}/trending`);
+                const dramas = await res.json();
+                allDramas = dramas;
+                document.getElementById("loading").style.display = "none";
+                renderDramas(allDramas);
+            } catch(e) {
+                document.getElementById("loading").textContent = "Gagal memuat data: " + e.message;
+            }
+        }
 
-        db.collection("dramas").orderBy("updatedAt", "desc").get().then((snap) => {
-            document.getElementById("loading").style.display = "none";
+        function renderDramas(list) {
+            const countEl = document.getElementById("count");
             const listDiv = document.getElementById("list");
-            if (snap.empty) {
-                listDiv.innerHTML = '<p style="text-align:center;color:#aaa;padding:40px">Belum ada data. Jalankan scraper dulu.</p>';
+            if (!list.length) {
+                listDiv.innerHTML = '';
+                countEl.textContent = "Tidak ada drama ditemukan.";
                 return;
             }
-            snap.forEach((doc) => {
-                const d = doc.data();
-                listDiv.innerHTML += `
-                    <div class="card">
-                        <img src="${d.cover || ''}" onerror="this.src='https://via.placeholder.com/160x220?text=No+Image'">
-                        <div class="card-body">
-                            <b>${d.title}</b>
-                            <small>${d.author || ''}</small>
+            countEl.textContent = `${list.length} drama`;
+            listDiv.innerHTML = list.map(d => `
+                <div class="card" onclick="openDrama('${d.book_id}', this)">
+                    <img src="${d.thumb_url || ''}" onerror="this.src='https://via.placeholder.com/160x220?text=No+Image'" loading="lazy">
+                    <div class="card-body">
+                        <b>${d.book_name}</b>
+                        <small>${d.author || ''}</small>
+                        <div class="badge">${d.show_creation_status || ''} · ${d.serial_count || '?'} eps</div>
+                    </div>
+                </div>
+            `).join("");
+        }
+
+        function filterDramas() {
+            const kw = document.getElementById("searchInput").value.toLowerCase();
+            renderDramas(kw ? allDramas.filter(d => d.book_name?.toLowerCase().includes(kw)) : allDramas);
+        }
+
+        async function openDrama(book_id, cardEl) {
+            const d = allDramas.find(x => x.book_id === book_id);
+            if (!d) return;
+
+            document.getElementById("m-cover").src = d.thumb_url || '';
+            document.getElementById("m-title").textContent = d.book_name;
+            document.getElementById("m-author").textContent = "✍ " + (d.author || '-');
+            document.getElementById("m-abstract").textContent = d.abstract || '';
+            document.getElementById("m-status").textContent = `${d.show_creation_status} · ${d.serial_count} Episode`;
+            document.getElementById("episodes-list").innerHTML = '';
+            document.getElementById("ep-loading").style.display = "block";
+            document.getElementById("modal").style.display = "block";
+            document.body.style.overflow = "hidden";
+
+            try {
+                const res = await fetch(`${API}/chapters?book_id=${book_id}`);
+                const eps = await res.json();
+                document.getElementById("ep-loading").style.display = "none";
+
+                document.getElementById("episodes-list").innerHTML = eps.map(ep => `
+                    <div class="ep-card" onclick="playEpisode('${ep.vid}', '${ep.series_id}')">
+                        <img src="${ep.cover || ep.episode_cover || ''}" onerror="this.src='https://via.placeholder.com/140x80?text=EP+${ep.vid_index}'" loading="lazy">
+                        <div class="ep-card-body">
+                            <div class="ep-num">Episode ${ep.vid_index}</div>
+                            <div style="margin-top:2px;color:#888;font-size:10px">${Math.floor((ep.duration||0)/60)}m ${(ep.duration||0)%60}s</div>
                         </div>
-                    </div>`;
-            });
-        }).catch(err => {
-            document.getElementById("loading").textContent = "Gagal memuat: " + err.message;
+                    </div>
+                `).join("");
+            } catch(e) {
+                document.getElementById("ep-loading").textContent = "Gagal memuat episode.";
+            }
+        }
+
+        function playEpisode(vid, series_id) {
+            // Open Melolo web player
+            window.open(`https://melolo.tv/series/${series_id}?vid=${vid}`, '_blank');
+        }
+
+        function closeModal() {
+            document.getElementById("modal").style.display = "none";
+            document.body.style.overflow = "";
+        }
+
+        // Close modal on background click
+        document.getElementById("modal").addEventListener("click", function(e) {
+            if (e.target === this) closeModal();
         });
+
+        loadDramas();
     </script>
 </body>
 </html>
