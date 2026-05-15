@@ -3,1431 +3,202 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>MeloDrama — Short Drama Streaming</title>
+  <title>MeloDrama — Streaming Drama Pendek</title>
+  
+  <!-- FIX UTAMA: Mencegah error 403 Forbidden pada video -->
+  <meta name="referrer" content="no-referrer">
+  
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --red: #e50914;
-      --red-dark: #b20710;
-      --bg: #0a0a0a;
-      --surface: #141414;
-      --surface2: #1e1e1e;
-      --border: #2a2a2a;
-      --text: #ffffff;
-      --muted: #999;
-      --card-radius: 10px;
+      --red: #e50914; --bg: #0a0a0a; --surface: #141414; --border: #2a2a2a; --text: #fff; --muted: #999;
     }
-
-    html { scroll-behavior: smooth; }
-
-    body {
-      font-family: 'Inter', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      overflow-x: hidden;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    /* ── SCROLLBAR ── */
-    ::-webkit-scrollbar { width: 4px; height: 4px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
-
-    /* ── HEADER ── */
-    .header {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      z-index: 100;
-      height: 60px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 16px;
-      background: linear-gradient(to bottom, rgba(10,10,10,0.98) 0%, transparent 100%);
-      border-bottom: 1px solid rgba(255,255,255,0.05);
-      backdrop-filter: blur(8px);
-    }
-
-    .logo {
-      font-size: 20px;
-      font-weight: 800;
-      color: var(--red);
-      letter-spacing: -0.5px;
-      text-decoration: none;
-      cursor: pointer;
-      user-select: none;
-    }
-
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; line-height: 1.5; }
+    
+    /* Header */
+    .header { position: fixed; top: 0; left:0; width: 100%; height: 60px; background: rgba(10,10,10,0.95); backdrop-filter: blur(10px); display: flex; align-items: center; padding: 0 16px; z-index: 100; border-bottom: 1px solid var(--border); }
+    .logo { color: var(--red); font-weight: 800; font-size: 22px; cursor: pointer; text-decoration: none; letter-spacing: -1px; }
     .logo span { color: #fff; }
 
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
+    /* Main */
+    .main { padding-top: 80px; padding-bottom: 40px; }
+    .section { margin-bottom: 30px; padding: 0 16px; }
+    .section-title { font-size: 18px; font-weight: 700; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
+    
+    /* Grid Drama */
+    .drama-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px; }
+    .drama-card { cursor: pointer; transition: transform 0.2s; }
+    .drama-card:hover { transform: scale(1.05); }
+    .poster-wrap { position: relative; aspect-ratio: 2/3; border-radius: 8px; overflow: hidden; background: #222; }
+    .poster-wrap img { width: 100%; height: 100%; object-fit: cover; }
+    .ep-tag { position: absolute; bottom: 6px; right: 6px; background: rgba(0,0,0,0.7); font-size: 10px; padding: 2px 6px; border-radius: 4px; }
+    .title { font-size: 12px; margin-top: 8px; font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: #ddd; }
 
-    .search-bar-wrap {
-      position: relative;
-    }
-
-    .search-input {
-      width: 200px;
-      padding: 8px 12px 8px 36px;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      color: #fff;
-      font-size: 13px;
-      outline: none;
-      transition: width 0.3s, border-color 0.2s;
-    }
-
-    .search-input:focus {
-      width: 240px;
-      border-color: var(--red);
-    }
-
-    .search-input::placeholder { color: var(--muted); }
-
-    .search-icon {
-      position: absolute;
-      left: 10px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--muted);
-      width: 16px;
-      height: 16px;
-    }
-
-    /* ── NAV TABS ── */
-    .nav-tabs {
-      display: flex;
-      gap: 4px;
-      padding: 0 16px;
-      margin-top: 72px;
-      overflow-x: auto;
-      scrollbar-width: none;
-      -ms-overflow-style: none;
-    }
-
-    .nav-tabs::-webkit-scrollbar { display: none; }
-
-    .nav-tab {
-      padding: 7px 16px;
-      border-radius: 20px;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: all 0.2s;
-      border: 1px solid var(--border);
-      background: var(--surface);
-      color: var(--muted);
-    }
-
-    .nav-tab.active {
-      background: var(--red);
-      border-color: var(--red);
-      color: #fff;
-    }
-
-    /* ── HERO BANNER ── */
-    .hero {
-      position: relative;
-      height: 260px;
-      margin-top: 12px;
-      overflow: hidden;
-      border-radius: 0;
-    }
-
-    .hero-img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .hero-overlay {
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(to top, var(--bg) 0%, rgba(10,10,10,0.4) 50%, transparent 100%);
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      padding: 20px 16px;
-    }
-
-    .hero-badge {
-      display: inline-block;
-      background: var(--red);
-      color: #fff;
-      font-size: 11px;
-      font-weight: 700;
-      padding: 3px 8px;
-      border-radius: 4px;
-      margin-bottom: 8px;
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
-      width: fit-content;
-    }
-
-    .hero-title {
-      font-size: 22px;
-      font-weight: 800;
-      line-height: 1.2;
-      margin-bottom: 6px;
-      text-shadow: 0 2px 8px rgba(0,0,0,0.5);
-    }
-
-    .hero-meta {
-      font-size: 13px;
-      color: var(--muted);
-      margin-bottom: 12px;
-    }
-
-    .hero-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: var(--red);
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      padding: 10px 20px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s;
-      width: fit-content;
-    }
-
-    .hero-btn:hover { background: var(--red-dark); }
-
-    /* ── SECTION ── */
-    .section { margin-top: 24px; padding: 0 16px; }
-
-    .section-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
-    }
-
-    .section-title {
-      font-size: 16px;
-      font-weight: 700;
-    }
-
-    .section-more {
-      font-size: 13px;
-      color: var(--red);
-      cursor: pointer;
-      font-weight: 500;
-    }
-
-    /* ── HORIZONTAL SCROLL ROW ── */
-    .drama-row {
-      display: flex;
-      gap: 10px;
-      overflow-x: auto;
-      scrollbar-width: none;
-      -ms-overflow-style: none;
-      padding-bottom: 4px;
-    }
-
-    .drama-row::-webkit-scrollbar { display: none; }
-
-    .drama-card {
-      flex-shrink: 0;
-      width: 110px;
-      cursor: pointer;
-      border-radius: var(--card-radius);
-      overflow: hidden;
-      transition: transform 0.2s;
-    }
-
-    .drama-card:hover { transform: scale(1.04); }
-
-    .card-poster {
-      position: relative;
-      aspect-ratio: 2/3;
-      border-radius: var(--card-radius);
-      overflow: hidden;
-      background: var(--surface2);
-    }
-
-    .card-poster img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-      transition: transform 0.3s;
-    }
-
-    .drama-card:hover .card-poster img { transform: scale(1.05); }
-
-    .card-ep-badge {
-      position: absolute;
-      bottom: 6px;
-      left: 6px;
-      background: rgba(0,0,0,0.75);
-      backdrop-filter: blur(4px);
-      color: #fff;
-      font-size: 10px;
-      font-weight: 600;
-      padding: 2px 6px;
-      border-radius: 4px;
-    }
-
-    .card-play-btn {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(0,0,0,0);
-      transition: background 0.2s;
-    }
-
-    .card-play-btn svg {
-      opacity: 0;
-      transform: scale(0.8);
-      transition: all 0.2s;
-    }
-
-    .drama-card:hover .card-play-btn { background: rgba(0,0,0,0.3); }
-    .drama-card:hover .card-play-btn svg { opacity: 1; transform: scale(1); }
-
-    .card-title {
-      font-size: 12px;
-      font-weight: 500;
-      margin-top: 6px;
-      line-height: 1.4;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-      color: #ddd;
-    }
-
-    /* ── GRID VIEW ── */
-    .drama-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-    }
-
-    .drama-grid .drama-card { width: auto; }
-
-    /* ── SEARCH RESULTS ── */
-    .search-section {
-      padding: 16px;
-      display: none;
-    }
-
-    .search-section.active { display: block; }
-
-    .search-title {
-      font-size: 14px;
-      color: var(--muted);
-      margin-bottom: 14px;
-    }
-
-    /* ── LOADING ── */
-    .spinner {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 60px;
-    }
-
-    .spin {
-      width: 36px;
-      height: 36px;
-      border: 3px solid var(--border);
-      border-top-color: var(--red);
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-    }
-
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .skeleton {
-      background: linear-gradient(90deg, var(--surface) 25%, var(--surface2) 50%, var(--surface) 75%);
-      background-size: 200% 100%;
-      animation: shimmer 1.4s infinite;
-      border-radius: var(--card-radius);
-    }
-
-    @keyframes shimmer { to { background-position: -200% 0; } }
-
-    /* ── MODAL ── */
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 200;
-      background: rgba(0,0,0,0.85);
-      display: none;
-      align-items: flex-end;
-      backdrop-filter: blur(4px);
-    }
-
+    /* Modal Player */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.98); z-index: 200; display: none; flex-direction: column; }
     .modal-overlay.open { display: flex; }
+    .player-wrap { width: 100%; aspect-ratio: 16/9; background: #000; position: relative; max-height: 40vh; }
+    video { width: 100%; height: 100%; }
+    
+    .modal-body { flex: 1; overflow-y: auto; padding: 20px; }
+    .modal-info { margin-bottom: 20px; }
+    .modal-title { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
+    .modal-desc { font-size: 13px; color: var(--muted); margin-top: 10px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 
-    .modal {
-      width: 100%;
-      max-height: 95vh;
-      background: #111;
-      border-radius: 20px 20px 0 0;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      animation: slideUp 0.32s cubic-bezier(0.34, 1.2, 0.64, 1);
-    }
+    .ep-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 20px; }
+    .ep-btn { padding: 12px 5px; background: #222; border: 1px solid #333; color: #fff; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; text-align: center; }
+    .ep-btn.active { background: var(--red); border-color: var(--red); }
+    
+    .close-btn { position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.2); color: #fff; border: none; border-radius: 50%; width: 32px; height: 32px; z-index: 210; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; }
 
-    @keyframes slideUp {
-      from { transform: translateY(100%); opacity: 0; }
-      to   { transform: translateY(0); opacity: 1; }
-    }
-
-    .modal-drag { width: 40px; height: 4px; background: #444; border-radius: 2px; margin: 12px auto 0; flex-shrink: 0; }
-
-    /* ── VIDEO PLAYER ── */
-    .player-wrap {
-      position: relative;
-      background: #000;
-      flex-shrink: 0;
-    }
-
-    .player-video {
-      width: 100%;
-      aspect-ratio: 9/16;
-      display: block;
-      max-height: 55vw;
-      aspect-ratio: 16/9;
-    }
-
-    .player-placeholder {
-      width: 100%;
-      aspect-ratio: 16/9;
-      max-height: 55vw;
-      background: #000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      gap: 8px;
-      color: var(--muted);
-      font-size: 13px;
-    }
-
-    .player-placeholder svg { opacity: 0.5; }
-
-    .player-loading {
-      position: absolute;
-      inset: 0;
-      background: rgba(0,0,0,0.7);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      gap: 10px;
-      font-size: 13px;
-      color: #ccc;
-    }
-
-    /* ── MODAL CONTENT ── */
-    .modal-content {
-      overflow-y: auto;
-      padding: 16px;
-      flex: 1;
-    }
-
-    .modal-drama-info {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-
-    .modal-poster {
-      width: 72px;
-      height: 108px;
-      border-radius: 8px;
-      object-fit: cover;
-      flex-shrink: 0;
-    }
-
-    .modal-meta { flex: 1; min-width: 0; }
-
-    .modal-title {
-      font-size: 16px;
-      font-weight: 700;
-      line-height: 1.3;
-      margin-bottom: 6px;
-    }
-
-    .modal-tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 5px;
-      margin-bottom: 8px;
-    }
-
-    .tag {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      color: #bbb;
-      font-size: 11px;
-      padding: 3px 8px;
-      border-radius: 20px;
-    }
-
-    .modal-stats {
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    .ep-section-title {
-      font-size: 14px;
-      font-weight: 600;
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .ep-count-badge {
-      font-size: 12px;
-      font-weight: 400;
-      color: var(--muted);
-    }
-
-    /* ── EPISODE BUTTONS ── */
-    .ep-grid {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 7px;
-      margin-bottom: 20px;
-    }
-
-    .ep-btn {
-      aspect-ratio: 1;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      background: var(--surface2);
-      color: #ccc;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-    }
-
-    .ep-btn:hover {
-      border-color: var(--red);
-      color: #fff;
-      background: rgba(229,9,20,0.15);
-    }
-
-    .ep-btn.active {
-      background: var(--red);
-      border-color: var(--red);
-      color: #fff;
-    }
-
-    .ep-btn.locked::after {
-      content: '🔒';
-      position: absolute;
-      font-size: 9px;
-      top: 2px;
-      right: 3px;
-    }
-
-    .ep-loading {
-      grid-column: 1 / -1;
-      text-align: center;
-      color: var(--muted);
-      font-size: 13px;
-      padding: 20px;
-    }
-
-    .ep-error {
-      grid-column: 1 / -1;
-      text-align: center;
-      color: #f66;
-      font-size: 13px;
-      padding: 20px;
-    }
-
-    /* ── CLOSE BTN ── */
-    .modal-close {
-      position: absolute;
-      top: 12px;
-      right: 12px;
-      z-index: 10;
-      background: rgba(0,0,0,0.5);
-      border: none;
-      color: #fff;
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      font-size: 18px;
-      line-height: 1;
-    }
-
-    /* ── NAV EP CONTROLS ── */
-    .ep-nav {
-      display: flex;
-      justify-content: space-between;
-      gap: 8px;
-      margin-bottom: 14px;
-    }
-
-    .ep-nav-btn {
-      flex: 1;
-      padding: 10px;
-      border-radius: 8px;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      color: #ccc;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-    }
-
-    .ep-nav-btn:hover:not(:disabled) { border-color: var(--red); color: #fff; }
-    .ep-nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-
-    /* ── BOTTOM NAV ── */
-    .bottom-nav {
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      z-index: 100;
-      height: 58px;
-      background: rgba(10,10,10,0.97);
-      border-top: 1px solid var(--border);
-      display: flex;
-      align-items: stretch;
-      backdrop-filter: blur(10px);
-    }
-
-    .bottom-nav-btn {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 3px;
-      color: var(--muted);
-      font-size: 10px;
-      font-weight: 500;
-      cursor: pointer;
-      background: none;
-      border: none;
-      transition: color 0.2s;
-    }
-
-    .bottom-nav-btn.active { color: var(--red); }
-    .bottom-nav-btn:hover { color: #fff; }
-
-    .bottom-nav-btn svg { width: 22px; height: 22px; }
-
-    /* ── MAIN CONTENT WRAP ── */
-    .main { padding-bottom: 80px; }
-
-    /* ── PAGE VIEWS ── */
-    .page { display: none; }
-    .page.active { display: block; }
-
-    /* ── TOAST ── */
-    .toast {
-      position: fixed;
-      bottom: 80px;
-      left: 50%;
-      transform: translateX(-50%) translateY(20px);
-      background: #333;
-      color: #fff;
-      padding: 10px 20px;
-      border-radius: 20px;
-      font-size: 13px;
-      z-index: 300;
-      opacity: 0;
-      transition: all 0.3s;
-      white-space: nowrap;
-      pointer-events: none;
-    }
-
-    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-    /* ── FAVORITES ── */
-    .fav-btn {
-      position: absolute;
-      top: 6px;
-      right: 6px;
-      background: rgba(0,0,0,0.6);
-      border: none;
-      color: #fff;
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      font-size: 14px;
-      transition: transform 0.2s;
-      z-index: 5;
-    }
-
-    .fav-btn:hover { transform: scale(1.2); }
-
-    /* ── EMPTY STATE ── */
-    .empty-state {
-      text-align: center;
-      padding: 60px 20px;
-      color: var(--muted);
-    }
-
-    .empty-state svg { margin-bottom: 12px; opacity: 0.4; }
-    .empty-state h3 { font-size: 16px; color: #ccc; margin-bottom: 6px; }
-    .empty-state p { font-size: 13px; }
-
-    /* ── RESPONSIVE ── */
-    @media (min-width: 600px) {
-      .drama-grid { grid-template-columns: repeat(4, 1fr); }
-      .ep-grid { grid-template-columns: repeat(8, 1fr); }
-      .modal { max-width: 560px; margin: 0 auto; border-radius: 20px; }
-      .modal-overlay { align-items: center; }
-    }
+    /* Loading Spinner */
+    .loading-state { padding: 50px; text-align: center; color: var(--muted); }
+    .spinner { border: 3px solid #333; border-top: 3px solid var(--red); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto 10px; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
 
-<!-- HEADER -->
 <header class="header">
-  <div class="logo" onclick="goHome()">Melo<span>Drama</span></div>
-  <div class="header-right">
-    <div class="search-bar-wrap">
-      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-      </svg>
-      <input class="search-input" id="searchInput" type="search" placeholder="Cari drama..." oninput="handleSearch(this.value)" autocomplete="off">
-    </div>
-  </div>
+  <div class="logo" onclick="location.reload()">Melo<span>Drama</span></div>
 </header>
 
-<!-- MAIN -->
 <main class="main">
-
-  <!-- HOME PAGE -->
-  <div class="page active" id="page-home">
-
-    <!-- NAV TABS -->
-    <div class="nav-tabs" id="navTabs">
-      <div class="nav-tab active" onclick="filterTab('semua', this)">🔥 Semua</div>
-      <div class="nav-tab" onclick="filterTab('Romansa', this)">💘 Romansa</div>
-      <div class="nav-tab" onclick="filterTab('Bos', this)">💼 Bos</div>
-      <div class="nav-tab" onclick="filterTab('Balas Dendam', this)">⚔️ Balas Dendam</div>
-      <div class="nav-tab" onclick="filterTab('Keluarga', this)">👨‍👩‍👧 Keluarga</div>
-      <div class="nav-tab" onclick="filterTab('Kontrak', this)">📜 Kontrak</div>
-      <div class="nav-tab" onclick="filterTab('Miliarder', this)">💰 Miliarder</div>
-      <div class="nav-tab" onclick="filterTab('Kompetisi', this)">🏆 Kompetisi</div>
-    </div>
-
-    <!-- HERO BANNER -->
-    <div class="hero" id="heroBanner" style="display:none">
-      <img class="hero-img" id="heroImg" src="" alt="">
-      <div class="hero-overlay">
-        <div class="hero-badge">🔥 Populer</div>
-        <div class="hero-title" id="heroTitle"></div>
-        <div class="hero-meta" id="heroMeta"></div>
-        <button class="hero-btn" id="heroBtn">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
-          Tonton Sekarang
-        </button>
-      </div>
-    </div>
-
-    <!-- DRAMA LIST -->
-    <div id="homeContent"></div>
-
-  </div>
-
-  <!-- SEARCH PAGE -->
-  <div class="page" id="page-search">
-    <div style="padding: 80px 16px 16px">
-      <h2 style="font-size:14px; color: var(--muted); margin-bottom: 14px" id="searchLabel">Menampilkan hasil pencarian...</h2>
-      <div class="drama-grid" id="searchResults"></div>
-      <div class="empty-state" id="searchEmpty" style="display:none">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        <h3>Tidak ditemukan</h3>
-        <p>Coba kata kunci lain</p>
-      </div>
+  <div class="section">
+    <div class="section-title">🔥 Drama Populer</div>
+    <div id="dramaContent" class="drama-grid">
+      <div class="loading-state"><div class="spinner"></div> Memuat drama...</div>
     </div>
   </div>
-
-  <!-- FAVORITES PAGE -->
-  <div class="page" id="page-fav">
-    <div style="padding: 80px 16px 16px">
-      <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 16px">❤️ Favorit Saya</h2>
-      <div class="drama-grid" id="favGrid"></div>
-      <div class="empty-state" id="favEmpty" style="display:none">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-        <h3>Belum ada favorit</h3>
-        <p>Tekan ❤️ pada drama untuk menyimpannya</p>
-      </div>
-    </div>
-  </div>
-
 </main>
 
-<!-- BOTTOM NAV -->
-<nav class="bottom-nav">
-  <button class="bottom-nav-btn active" id="nav-home" onclick="showPage('home')">
-    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
-    Beranda
-  </button>
-  <button class="bottom-nav-btn" id="nav-search" onclick="focusSearch()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-    Cari
-  </button>
-  <button class="bottom-nav-btn" id="nav-fav" onclick="showPage('fav')">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-    Favorit
-  </button>
-</nav>
-
-<!-- DRAMA MODAL -->
-<div class="modal-overlay" id="modalOverlay" onclick="closeModalOnBg(event)">
-  <div class="modal" id="dramaModal">
-    <div class="modal-drag"></div>
-    <button class="modal-close" onclick="closeModal()">✕</button>
-
-    <!-- VIDEO PLAYER -->
-    <div class="player-wrap" id="playerWrap">
-      <div class="player-placeholder" id="playerPlaceholder">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <circle cx="12" cy="12" r="10"/><polygon points="10,8 16,12 10,16" fill="currentColor"/>
-        </svg>
-        <span>Pilih episode untuk mulai menonton</span>
-      </div>
-      <video class="player-video" id="playerVideo" controls playsinline preload="metadata" style="display:none"></video>
-      <div class="player-loading" id="playerLoading" style="display:none">
-        <div class="spin"></div>
-        <span id="playerLoadingText">Memuat video...</span>
-      </div>
+<!-- MODAL PLAYER -->
+<div class="modal-overlay" id="modalOverlay">
+  <button class="close-btn" onclick="closeModal()">✕</button>
+  
+  <div class="player-wrap">
+    <video id="mainPlayer" controls playsinline></video>
+  </div>
+  
+  <div class="modal-body">
+    <div class="modal-info">
+      <div id="mTitle" class="modal-title">Judul Drama</div>
+      <div id="mDesc" class="modal-desc">Deskripsi drama...</div>
     </div>
-
-    <!-- MODAL BODY -->
-    <div class="modal-content">
-      <!-- Drama Info -->
-      <div class="modal-drama-info">
-        <img class="modal-poster" id="modalPoster" src="" alt="">
-        <div class="modal-meta">
-          <div class="modal-title" id="modalTitle"></div>
-          <div class="modal-tags" id="modalTags"></div>
-          <div class="modal-stats" id="modalStats"></div>
-        </div>
-      </div>
-
-      <!-- Nav Prev / Next -->
-      <div class="ep-nav">
-        <button class="ep-nav-btn" id="btnPrevEp" onclick="changeEpisode(-1)" disabled>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
-          Sebelumnya
-        </button>
-        <button class="ep-nav-btn" id="btnNextEp" onclick="changeEpisode(1)" disabled>
-          Selanjutnya
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
-        </button>
-      </div>
-
-      <!-- Episodes -->
-      <div class="ep-section-title">
-        Daftar Episode
-        <span class="ep-count-badge" id="epCountBadge"></span>
-      </div>
-      <div class="ep-grid" id="epGrid">
-        <div class="ep-loading">Memuat episode...</div>
-      </div>
-    </div>
+    
+    <div style="font-weight: 700; font-size: 14px; color: var(--red);">Daftar Episode</div>
+    <div id="epGrid" class="ep-grid"></div>
   </div>
 </div>
 
-<!-- TOAST -->
-<div class="toast" id="toast"></div>
-
 <script>
-// ─────────────────────────────────────────
-//  CONFIG
-// ─────────────────────────────────────────
-const API = 'https://reelshort.vercel.app/api';
-const LANGS = ['in', 'en'];
-let allDramas = [];
-let currentDrama = null;
-let currentEpisodes = [];
-let currentEpIndex = -1;
-let hlsInstance = null;
-let favorites = JSON.parse(localStorage.getItem('melodrama_favs') || '{}');
-let searchTimeout = null;
-let activeTab = 'semua';
-let activePage = 'home';
+  // GUNAKAN API ANDA SENDIRI DISINI (HASIL DEPLOY VERCEL)
+  const API_BASE = 'https://reelshort.vercel.app/api'; 
+  
+  let currentDrama = null;
+  let hls = null;
 
-// ─────────────────────────────────────────
-//  INIT
-// ─────────────────────────────────────────
-window.addEventListener('DOMContentLoaded', async () => {
-  renderSkeletons();
-  await loadDramas();
-});
-
-// ─────────────────────────────────────────
-//  LOAD DRAMAS
-// ─────────────────────────────────────────
-async function loadDramas() {
-  try {
-    // Fetch foryou (Indonesian content, 480 dramas)
-    const res = await fetch(`${API}/foryou?lang=in`);
-    const json = await res.json();
-    allDramas = (json.items || []).map(d => ({
-      id: d.book_id,
-      title: d.title,
-      pic: d.pic,
-      count: d.chapter_count,
-      fans: d.collect_count,
-      themes: d.theme || [],
-    }));
-
-    renderHome(allDramas);
-    renderHero();
-  } catch (e) {
-    document.getElementById('homeContent').innerHTML = `
-      <div class="empty-state">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        <h3>Gagal memuat drama</h3>
-        <p>Periksa koneksi internet Anda</p>
-      </div>`;
-  }
-}
-
-// ─────────────────────────────────────────
-//  RENDER SKELETON
-// ─────────────────────────────────────────
-function renderSkeletons() {
-  const wrap = document.getElementById('homeContent');
-  let html = '<div class="section"><div class="section-header"><div class="section-title">Memuat...</div></div>';
-  html += '<div class="drama-row">';
-  for (let i = 0; i < 8; i++) {
-    html += `<div class="drama-card">
-      <div class="card-poster skeleton" style="aspect-ratio:2/3"></div>
-      <div class="skeleton" style="height:12px;margin-top:6px;border-radius:4px;width:80%"></div>
-    </div>`;
-  }
-  html += '</div></div>';
-  wrap.innerHTML = html;
-}
-
-// ─────────────────────────────────────────
-//  RENDER HERO
-// ─────────────────────────────────────────
-function renderHero() {
-  if (!allDramas.length) return;
-  // pick random from top 20
-  const pick = allDramas[Math.floor(Math.random() * Math.min(20, allDramas.length))];
-  document.getElementById('heroImg').src = pick.pic;
-  document.getElementById('heroTitle').textContent = pick.title;
-  document.getElementById('heroMeta').textContent = `${pick.count} Episode · ${formatFans(pick.fans)} penonton`;
-  document.getElementById('heroBtn').onclick = () => openModal(pick);
-  document.getElementById('heroBanner').style.display = 'block';
-}
-
-function formatFans(n) {
-  if (!n) return '0';
-  if (n >= 1000000) return (n/1000000).toFixed(1) + 'jt';
-  if (n >= 1000) return (n/1000).toFixed(0) + 'rb';
-  return n.toString();
-}
-
-// ─────────────────────────────────────────
-//  RENDER HOME (with sections)
-// ─────────────────────────────────────────
-function renderHome(dramas) {
-  if (!dramas.length) {
-    document.getElementById('homeContent').innerHTML = `<div class="empty-state"><h3>Tidak ada drama</h3></div>`;
-    return;
-  }
-
-  // Group by theme for sections
-  const themeGroups = {};
-  dramas.forEach(d => {
-    (d.themes || []).forEach(t => {
-      if (!themeGroups[t]) themeGroups[t] = [];
-      if (themeGroups[t].length < 20) themeGroups[t].push(d);
-    });
-  });
-
-  const topThemes = Object.entries(themeGroups)
-    .sort((a, b) => b[1].length - a[1].length)
-    .slice(0, 6);
-
-  let html = '';
-
-  // "Untuk Kamu" section (all)
-  html += buildSection('🎬 Untuk Kamu', dramas.slice(0, 30), false, true);
-
-  // Theme sections
-  for (const [theme, list] of topThemes) {
-    if (list.length >= 5) {
-      const emoji = getThemeEmoji(theme);
-      html += buildSection(`${emoji} ${theme}`, list, false, true);
+  // 1. Load Data Drama (Foryou)
+  async function init() {
+    try {
+      const res = await fetch(`${API_BASE}/foryou?lang=in`);
+      const data = await res.json();
+      renderDramas(data.items || []);
+    } catch (e) {
+      document.getElementById('dramaContent').innerHTML = '<p>Gagal memuat data. Cek koneksi API.</p>';
     }
   }
 
-  document.getElementById('homeContent').innerHTML = html;
-}
-
-function buildSection(title, dramas, grid = false, scroll = false) {
-  let html = `<div class="section">
-    <div class="section-header">
-      <div class="section-title">${title}</div>
-      <div class="section-more">${dramas.length} drama</div>
-    </div>`;
-
-  if (scroll) {
-    html += `<div class="drama-row">`;
-    html += dramas.map(d => buildCard(d, false)).join('');
-    html += `</div>`;
-  } else {
-    html += `<div class="drama-grid">`;
-    html += dramas.map(d => buildCard(d, false)).join('');
-    html += `</div>`;
-  }
-
-  html += `</div>`;
-  return html;
-}
-
-function buildCard(d, showFav = true) {
-  const isFav = !!favorites[d.id];
-  return `
-  <div class="drama-card" onclick="openModal(${JSON.stringify(d).replace(/"/g, '&quot;')})">
-    <div class="card-poster">
-      <img src="${d.pic}" alt="${escHtml(d.title)}" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;110&quot; height=&quot;165&quot; viewBox=&quot;0 0 110 165&quot;><rect width=&quot;110&quot; height=&quot;165&quot; fill=&quot;%23222&quot;/></svg>'">
-      <div class="card-ep-badge">${d.count} Ep</div>
-      <div class="card-play-btn">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="white"><circle cx="12" cy="12" r="10" fill="rgba(0,0,0,0.5)"/><polygon points="10,8 16,12 10,16" fill="white"/></svg>
+  // 2. Tampilkan Card Drama
+  function renderDramas(items) {
+    const container = document.getElementById('dramaContent');
+    container.innerHTML = items.map(item => `
+      <div class="drama-card" onclick="openDrama('${item.book_id}')">
+        <div class="poster-wrap">
+          <img src="${item.pic}" alt="poster">
+          <div class="ep-tag">${item.chapter_count} Ep</div>
+        </div>
+        <div class="title">${item.title}</div>
       </div>
-      <button class="fav-btn" onclick="event.stopPropagation();toggleFav(event,'${d.id}','${escHtml(d.title)}')">
-        ${isFav ? '❤️' : '🤍'}
-      </button>
-    </div>
-    <div class="card-title">${escHtml(d.title)}</div>
-  </div>`;
-}
-
-function escHtml(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-function getThemeEmoji(t) {
-  const map = {
-    'Romansa': '💘', 'Kontrak': '📜', 'Kaya': '💎', 'Bos': '💼',
-    'Triliuner': '💰', 'Miliarder': '💰', 'Balas Dendam': '⚔️',
-    'Keluarga': '👨‍👩‍👧', 'Kompetisi': '🏆', 'Perbedaan Usia': '⏳',
-    'Drama Sekolah': '🏫', 'Komedi': '😄', 'Mistis': '👻',
-  };
-  return map[t] || '🎭';
-}
-
-// ─────────────────────────────────────────
-//  TAB FILTER
-// ─────────────────────────────────────────
-function filterTab(keyword, el) {
-  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
-  activeTab = keyword;
-
-  const filtered = keyword === 'semua'
-    ? allDramas
-    : allDramas.filter(d => d.themes.some(t => t.toLowerCase().includes(keyword.toLowerCase()) || keyword.toLowerCase().includes(t.toLowerCase())));
-
-  renderHome(filtered);
-}
-
-// ─────────────────────────────────────────
-//  SEARCH
-// ─────────────────────────────────────────
-function handleSearch(q) {
-  clearTimeout(searchTimeout);
-  if (!q.trim()) {
-    showPage('home');
-    return;
+    `).join('');
   }
-  searchTimeout = setTimeout(() => doSearch(q.trim()), 300);
-}
 
-function doSearch(q) {
-  showPage('search');
-  document.getElementById('searchLabel').textContent = `Hasil untuk "${q}" (${allDramas.length} drama tersedia)`;
+  // 3. Buka Modal & Ambil Detail Episode
+  async function openDrama(id) {
+    const modal = document.getElementById('modalOverlay');
+    modal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    
+    document.getElementById('epGrid').innerHTML = '<div class="loading-state">Memuat episode...</div>';
 
-  const lower = q.toLowerCase();
-  const results = allDramas.filter(d =>
-    d.title.toLowerCase().includes(lower) ||
-    (d.themes || []).some(t => t.toLowerCase().includes(lower))
-  );
-
-  const grid = document.getElementById('searchResults');
-  const empty = document.getElementById('searchEmpty');
-
-  if (!results.length) {
-    grid.innerHTML = '';
-    empty.style.display = 'block';
-  } else {
-    empty.style.display = 'none';
-    grid.innerHTML = results.slice(0, 60).map(d => buildCard(d)).join('');
-  }
-}
-
-function focusSearch() {
-  const inp = document.getElementById('searchInput');
-  inp.focus();
-  if (inp.value) showPage('search');
-  else showPage('search');
-  setActiveNav('search');
-}
-
-// ─────────────────────────────────────────
-//  PAGE NAVIGATION
-// ─────────────────────────────────────────
-function showPage(page) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById(`page-${page}`).classList.add('active');
-  activePage = page;
-  setActiveNav(page);
-
-  if (page === 'fav') renderFavPage();
-}
-
-function setActiveNav(page) {
-  document.querySelectorAll('.bottom-nav-btn').forEach(b => b.classList.remove('active'));
-  const btn = document.getElementById(`nav-${page}`);
-  if (btn) btn.classList.add('active');
-}
-
-function goHome() {
-  document.getElementById('searchInput').value = '';
-  showPage('home');
-}
-
-// ─────────────────────────────────────────
-//  FAVORITES
-// ─────────────────────────────────────────
-function toggleFav(e, id, title) {
-  if (favorites[id]) {
-    delete favorites[id];
-    showToast(`Dihapus dari favorit`);
-  } else {
-    const drama = allDramas.find(d => d.id === id);
-    if (drama) favorites[id] = drama;
-    showToast(`❤️ Ditambahkan ke favorit`);
-  }
-  localStorage.setItem('melodrama_favs', JSON.stringify(favorites));
-  // update button
-  const btn = e.target.closest('.fav-btn');
-  if (btn) btn.textContent = favorites[id] ? '❤️' : '🤍';
-}
-
-function renderFavPage() {
-  const favList = Object.values(favorites);
-  const grid = document.getElementById('favGrid');
-  const empty = document.getElementById('favEmpty');
-  if (!favList.length) {
-    grid.innerHTML = '';
-    empty.style.display = 'block';
-  } else {
-    empty.style.display = 'none';
-    grid.innerHTML = favList.map(d => buildCard(d)).join('');
-  }
-}
-
-// ─────────────────────────────────────────
-//  MODAL — OPEN
-// ─────────────────────────────────────────
-async function openModal(drama) {
-  currentDrama = drama;
-  currentEpisodes = [];
-  currentEpIndex = -1;
-
-  // Reset video
-  stopPlayer();
-  document.getElementById('playerPlaceholder').style.display = 'flex';
-  document.getElementById('playerVideo').style.display = 'none';
-  document.getElementById('playerLoading').style.display = 'none';
-
-  // Fill info
-  document.getElementById('modalPoster').src = drama.pic;
-  document.getElementById('modalTitle').textContent = drama.title;
-  document.getElementById('modalStats').textContent =
-    `${drama.count} Episode · ${formatFans(drama.fans)} penonton`;
-
-  const tagsHtml = (drama.themes || []).map(t =>
-    `<span class="tag">${t}</span>`
-  ).join('');
-  document.getElementById('modalTags').innerHTML = tagsHtml;
-
-  document.getElementById('epGrid').innerHTML = '<div class="ep-loading">Memuat episode...</div>';
-  document.getElementById('epCountBadge').textContent = '';
-  document.getElementById('btnPrevEp').disabled = true;
-  document.getElementById('btnNextEp').disabled = true;
-
-  document.getElementById('modalOverlay').classList.add('open');
-  document.body.style.overflow = 'hidden';
-
-  await loadEpisodes(drama.id);
-}
-
-// ─────────────────────────────────────────
-//  LOAD EPISODES
-// ─────────────────────────────────────────
-async function loadEpisodes(bookId) {
-  try {
-    const res = await fetch(`${API}/chapters?id=${bookId}`);
-    const json = await res.json();
-
-    // Handle both response shapes
-    let eps = [];
-    if (json.data?.chapters) eps = json.data.chapters;
-    else if (Array.isArray(json.data)) eps = json.data;
-    else if (Array.isArray(json)) eps = json;
-
-    if (!eps.length) throw new Error('no_episodes');
-
-    currentEpisodes = eps;
-    document.getElementById('epCountBadge').textContent = `${eps.length} episode`;
-    renderEpGrid();
-
-  } catch (e) {
-    // Fallback: generate episode buttons from chapter_count
-    if (currentDrama?.count > 0) {
-      currentEpisodes = Array.from({ length: currentDrama.count }, (_, i) => ({
-        chapter_id: String(i + 1),
-        serial_number: i + 1,
-        is_lock: 0,
-      }));
-      document.getElementById('epCountBadge').textContent = `${currentEpisodes.length} episode`;
-      renderEpGrid();
-    } else {
-      document.getElementById('epGrid').innerHTML =
-        '<div class="ep-error">Tidak dapat memuat daftar episode</div>';
+    try {
+      // Ambil detail lengkap (termasuk deskripsi & daftar episode)
+      const res = await fetch(`${API_BASE}/chapters?id=${id}`);
+      const data = await res.json();
+      
+      currentDrama = data;
+      document.getElementById('mTitle').innerText = data.title;
+      document.getElementById('mDesc').innerText = data.desc || "Tidak ada deskripsi.";
+      
+      renderEpisodes(data.episodes || []);
+      
+      // Putar episode pertama otomatis
+      if(data.episodes && data.episodes.length > 0) {
+        playVideo(0);
+      }
+    } catch (e) {
+      alert("Gagal mengambil detail drama.");
     }
   }
-}
 
-// ─────────────────────────────────────────
-//  RENDER EPISODE GRID
-// ─────────────────────────────────────────
-function renderEpGrid() {
-  const grid = document.getElementById('epGrid');
-  grid.innerHTML = currentEpisodes.map((ep, i) => {
-    const num = ep.serial_number || (i + 1);
-    const locked = ep.is_lock === 1;
-    const activeClass = i === currentEpIndex ? ' active' : '';
-    const lockedClass = locked ? ' locked' : '';
-    return `<button class="ep-btn${activeClass}${lockedClass}" id="ep-btn-${i}" onclick="playEpisode(${i})">${num}</button>`;
-  }).join('');
-}
-
-// ─────────────────────────────────────────
-//  PLAY EPISODE
-// ─────────────────────────────────────────
-async function playEpisode(index) {
-  if (!currentEpisodes[index]) return;
-  currentEpIndex = index;
-
-  // Update UI
-  document.querySelectorAll('.ep-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById(`ep-btn-${index}`)?.classList.add('active');
-
-  // Update prev/next buttons
-  document.getElementById('btnPrevEp').disabled = index <= 0;
-  document.getElementById('btnNextEp').disabled = index >= currentEpisodes.length - 1;
-
-  // Scroll to top of modal
-  document.querySelector('.modal-content').scrollTop = 0;
-
-  // Show loading
-  stopPlayer();
-  document.getElementById('playerPlaceholder').style.display = 'none';
-  document.getElementById('playerVideo').style.display = 'none';
-  document.getElementById('playerLoading').style.display = 'flex';
-  document.getElementById('playerLoadingText').textContent = 'Memuat video...';
-
-  const ep = currentEpisodes[index];
-  const chapterId = ep.chapter_id || ep.serial_number || (index + 1);
-
-  try {
-    const res = await fetch(`${API}/video?id=${currentDrama.id}&chapter=${chapterId}`);
-    const json = await res.json();
-
-    // Extract video URL
-    let videoUrl = '';
-    if (json.data?.videos?.length) {
-      const h264 = json.data.videos.find(v => v.Encode === 'H264') || json.data.videos[0];
-      videoUrl = h264?.PlayURL || '';
-    } else if (json.video_url) {
-      videoUrl = json.video_url;
-    } else if (json.url) {
-      videoUrl = json.url;
-    } else if (typeof json.data === 'string') {
-      videoUrl = json.data;
-    }
-
-    if (!videoUrl) throw new Error('no_url');
-
-    playVideoUrl(videoUrl);
-
-  } catch (e) {
-    document.getElementById('playerLoading').style.display = 'none';
-    document.getElementById('playerPlaceholder').style.display = 'flex';
-    document.getElementById('playerPlaceholder').innerHTML = `
-      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:0.4"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      <span style="font-size:12px;color:#f66">Video tidak tersedia untuk episode ini</span>`;
+  // 4. Tampilkan Tombol Episode
+  function renderEpisodes(eps) {
+    const grid = document.getElementById('epGrid');
+    grid.innerHTML = eps.map((ep, i) => `
+      <button class="ep-btn" id="ep-${i}" onclick="playVideo(${i})">${i + 1}</button>
+    `).join('');
   }
-}
 
-// ─────────────────────────────────────────
-//  PLAY VIDEO URL
-// ─────────────────────────────────────────
-function playVideoUrl(url) {
-  const video = document.getElementById('playerVideo');
-  stopPlayer();
+  // 5. Fungsi Play Video (HLS)
+  function playVideo(index) {
+    const ep = currentDrama.episodes[index];
+    const video = document.getElementById('mainPlayer');
+    const videoUrl = ep.sourceVideoUrl || ep.videoUrl;
 
-  video.style.display = 'block';
-  document.getElementById('playerLoading').style.display = 'none';
+    // Update UI tombol aktif
+    document.querySelectorAll('.ep-btn').forEach(btn => btn.classList.remove('active'));
+    document.getElementById(`ep-${index}`).classList.add('active');
 
-  if (url.includes('.m3u8') || url.includes('m3u8')) {
-    // HLS stream
+    if (hls) hls.destroy();
+
     if (Hls.isSupported()) {
-      hlsInstance = new Hls({
-        enableWorker: true,
-        lowLatencyMode: false,
-        backBufferLength: 90,
-      });
-      hlsInstance.loadSource(url);
-      hlsInstance.attachMedia(video);
-      hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
-        video.play().catch(() => {});
-      });
-      hlsInstance.on(Hls.Events.ERROR, (e, data) => {
-        if (data.fatal) {
-          showToast('Gagal memuat video HLS');
-        }
-      });
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = url;
-      video.play().catch(() => {});
+      hls = new Hls();
+      hls.loadSource(videoUrl);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
+    } 
+    else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = videoUrl;
+      video.play();
     }
-  } else {
-    // Direct MP4 or other
-    video.src = url;
-    video.play().catch(() => {});
   }
 
-  // Auto-play next episode when current ends
-  video.onended = () => {
-    if (currentEpIndex < currentEpisodes.length - 1) {
-      showToast('▶️ Melanjutkan ke episode berikutnya...');
-      setTimeout(() => playEpisode(currentEpIndex + 1), 1500);
-    }
-  };
-}
-
-// ─────────────────────────────────────────
-//  STOP PLAYER
-// ─────────────────────────────────────────
-function stopPlayer() {
-  if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
-  const video = document.getElementById('playerVideo');
-  video.pause();
-  video.src = '';
-  video.onended = null;
-}
-
-// ─────────────────────────────────────────
-//  EPISODE NAV
-// ─────────────────────────────────────────
-function changeEpisode(delta) {
-  const next = currentEpIndex + delta;
-  if (next >= 0 && next < currentEpisodes.length) {
-    playEpisode(next);
-    document.getElementById(`ep-btn-${next}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  function closeModal() {
+    const modal = document.getElementById('modalOverlay');
+    const video = document.getElementById('mainPlayer');
+    modal.classList.remove('open');
+    document.body.style.overflow = '';
+    video.pause();
+    if (hls) hls.destroy();
   }
-}
 
-// ─────────────────────────────────────────
-//  MODAL — CLOSE
-// ─────────────────────────────────────────
-function closeModal() {
-  document.getElementById('modalOverlay').classList.remove('open');
-  document.body.style.overflow = '';
-  stopPlayer();
-  currentDrama = null;
-  currentEpisodes = [];
-  currentEpIndex = -1;
-}
-
-function closeModalOnBg(e) {
-  if (e.target === document.getElementById('modalOverlay')) closeModal();
-}
-
-// ─────────────────────────────────────────
-//  TOAST
-// ─────────────────────────────────────────
-function showToast(msg) {
-  const toast = document.getElementById('toast');
-  toast.textContent = msg;
-  toast.classList.add('show');
-  clearTimeout(window._toastTimer);
-  window._toastTimer = setTimeout(() => toast.classList.remove('show'), 2500);
-}
-
-// ─────────────────────────────────────────
-//  KEYBOARD
-// ─────────────────────────────────────────
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') closeModal();
-  if (e.key === 'ArrowRight' && document.getElementById('modalOverlay').classList.contains('open')) changeEpisode(1);
-  if (e.key === 'ArrowLeft' && document.getElementById('modalOverlay').classList.contains('open')) changeEpisode(-1);
-});
-
-// ─────────────────────────────────────────
-//  PULL TO REFRESH (simple)
-// ─────────────────────────────────────────
-let touchStartY = 0;
-document.addEventListener('touchstart', e => { touchStartY = e.touches[0].clientY; }, { passive: true });
-document.addEventListener('touchend', e => {
-  const delta = e.changedTouches[0].clientY - touchStartY;
-  if (delta > 120 && window.scrollY < 10 && !document.getElementById('modalOverlay').classList.contains('open')) {
-    showToast('🔄 Menyegarkan...');
-    setTimeout(() => location.reload(), 800);
-  }
-}, { passive: true });
+  // Jalankan aplikasi
+  init();
 </script>
+
 </body>
 </html>
